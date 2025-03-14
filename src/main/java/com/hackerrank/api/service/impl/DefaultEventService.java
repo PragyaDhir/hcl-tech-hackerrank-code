@@ -16,6 +16,7 @@ import java.util.Optional;
 @Service
 public class DefaultEventService implements EventService {
   private final EventRepository eventRepository;
+  Pageable pageable = PageRequest.of(0, 3);
 
   @Autowired
   DefaultEventService(EventRepository eventRepository) {
@@ -48,40 +49,20 @@ public class DefaultEventService implements EventService {
 
   @Override
   public List<Event> top3By(String by) {
-
-    switch (by) {
-      case "cost": {
-        Pageable pageable = PageRequest.of(0, 3,Sort.by(Sort.Order.desc(by)));
-        return eventRepository.findAll(pageable).getContent();
-      }
-      case "duration": {
-        Pageable pageable = PageRequest.of(0, 3,Sort.by(Sort.Order.desc(by)));
-        return eventRepository.findAll(pageable).getContent();
-      }
-      default:
-        throw new BadRequestException(" by is invalid");
-    }
+      return switch (by) {
+          case "cost" -> eventRepository.findTop3ByOrderByCostDesc(pageable);
+          case "duration" -> eventRepository.findTop3ByOrderByDurationDesc(pageable);
+          default -> throw new BadRequestException("Invalid parameter: " + by);
+      };
   }
 
   @Override
   public Integer totalBy(String by) {
-    int flag =0;
-    if(by.equals("cost"))
-      flag =1;
-    else if (!by.equals("duration")) {
-      throw new BadRequestException("by is invalid");
-
-    }
-
-    List<Event> events = eventRepository.findAll();
-    int sum =0;
-
-    for(Event event : events)
-    {
-      if(flag == 0)
-        sum = sum + event.getCost();
-      else sum = sum +event.getDuration();
-    }
-    return sum;
+      return switch (by) {
+          case "cost" -> eventRepository.sumCost();
+          case "duration" -> eventRepository.sumDuration();
+          default -> throw new BadRequestException("Invalid parameter: " + by);
+      };
   }
+
 }
